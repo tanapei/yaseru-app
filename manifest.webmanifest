@@ -1,0 +1,17 @@
+{
+  "name": "YASERU",
+  "short_name": "YASERU",
+  "description": "食事、運動、睡眠を一画面で管理できるスマホ向けダイエットアプリ",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6efe3",
+  "theme_color": "#f6efe3",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -144,7 +144,22 @@ function bindModalEvents() {
 
 function bindServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(() => null);
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then((registration) => {
+        registration.update().catch(() => null);
+
+        let hasPendingRefresh = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (hasPendingRefresh) {
+            return;
+          }
+
+          hasPendingRefresh = true;
+          window.location.reload();
+        });
+      })
+      .catch(() => null);
   }
 }
 

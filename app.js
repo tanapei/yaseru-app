@@ -5,6 +5,7 @@ const MEAL_LABELS = {
   light: "控えめ",
 };
 const SNACK_LABELS = {
+  unrecorded: "未記録",
   none: "なし",
   little: "少し",
   much: "あり",
@@ -18,6 +19,7 @@ const EXERCISE_LABELS = {
   other: "その他",
 };
 const SLEEP_LABELS = {
+  unrecorded: "未記録",
   good: "良い",
   normal: "普通",
   bad: "悪い",
@@ -30,7 +32,7 @@ const defaultDailyRecord = () => ({
     lunch: "unrecorded",
     dinner: "unrecorded",
   },
-  snackLevel: "none",
+  snackLevel: "unrecorded",
   waterCups: 0,
   exerciseDone: false,
   exerciseType: "none",
@@ -39,7 +41,7 @@ const defaultDailyRecord = () => ({
   sleepHours: 0,
   bedtime: "",
   wakeTime: "",
-  sleepQuality: "normal",
+  sleepQuality: "unrecorded",
 });
 
 const state = loadState();
@@ -358,7 +360,8 @@ function fillFormDefaults(modalId) {
     ui.sleepForm.elements.sleepHours.value = String(entry.sleepHours || 7);
     ui.sleepForm.elements.bedtime.value = entry.bedtime || "23:30";
     ui.sleepForm.elements.wakeTime.value = entry.wakeTime || "06:30";
-    ui.sleepForm.elements.sleepQuality.value = entry.sleepQuality;
+    ui.sleepForm.elements.sleepQuality.value =
+      entry.sleepQuality === "unrecorded" ? "normal" : entry.sleepQuality;
   }
 }
 
@@ -632,16 +635,18 @@ function calculateScores(entry, profile) {
   exerciseScore = Math.min(exerciseScore, 100);
 
   let sleepScore = 0;
-  sleepScore += Math.min(
-    Math.round((entry.sleepHours / profile.dailySleepGoalHours) * 70),
-    70
-  );
-  if (entry.sleepQuality === "good") {
-    sleepScore += 30;
-  } else if (entry.sleepQuality === "normal") {
-    sleepScore += 18;
-  } else if (entry.sleepHours > 0) {
-    sleepScore += 8;
+  if (entry.sleepHours > 0) {
+    sleepScore += Math.min(
+      Math.round((entry.sleepHours / profile.dailySleepGoalHours) * 70),
+      70
+    );
+    if (entry.sleepQuality === "good") {
+      sleepScore += 30;
+    } else if (entry.sleepQuality === "normal") {
+      sleepScore += 18;
+    } else if (entry.sleepQuality === "bad") {
+      sleepScore += 8;
+    }
   }
   sleepScore = Math.min(sleepScore, 100);
 

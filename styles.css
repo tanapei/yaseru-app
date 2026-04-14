@@ -71,7 +71,6 @@ p {
 .hero-card,
 .overview-panel,
 .habit-card,
-.quick-actions,
 .modal-panel {
   backdrop-filter: blur(22px);
 }
@@ -116,7 +115,7 @@ h1 {
 .dashboard {
   flex: 1;
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto 1fr;
   gap: 12px;
   min-height: 0;
 }
@@ -159,16 +158,14 @@ h1 {
 
 .hero-action,
 .primary-button,
-.habit-button,
-.quick-button {
+.habit-button {
   min-height: 48px;
   border-radius: 16px;
   font-weight: 700;
 }
 
 .hero-action,
-.primary-button,
-.quick-button.accent {
+.primary-button {
   background: linear-gradient(180deg, var(--accent), var(--accent-strong));
   color: #fffaf5;
   box-shadow: 0 12px 22px rgba(183, 79, 34, 0.24);
@@ -327,21 +324,6 @@ h1 {
   color: var(--text);
 }
 
-.quick-actions {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  background: rgba(255, 250, 242, 0.84);
-  border-radius: var(--radius-xl);
-  padding: 10px;
-  box-shadow: var(--shadow);
-}
-
-.quick-button {
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--text);
-}
-
 .modal {
   position: fixed;
   inset: 0;
@@ -493,8 +475,7 @@ h1 {
   }
 
   .hero-card,
-  .overview-panel,
-  .quick-actions {
+  .overview-panel {
     padding: 14px;
   }
 
@@ -525,8 +506,7 @@ h1 {
     padding: 7px 8px;
   }
 
-  .habit-button,
-  .quick-button {
+  .habit-button {
     min-height: 44px;
     font-size: 0.92rem;
   }

@@ -145,20 +145,6 @@
           </article>
         </section>
 
-        <section class="quick-actions" aria-label="クイック操作">
-          <button class="quick-button" type="button" data-open-modal="meal-modal">
-            食事
-          </button>
-          <button class="quick-button" type="button" data-open-modal="exercise-modal">
-            運動
-          </button>
-          <button class="quick-button" type="button" data-open-modal="sleep-modal">
-            睡眠
-          </button>
-          <button class="quick-button accent" type="button" data-open-modal="weight-modal">
-            体重
-          </button>
-        </section>
       </main>
     </div>
 
@@ -285,6 +271,7 @@
           <label>
             <span>間食</span>
             <select name="snackLevel">
+              <option value="unrecorded">未記録</option>
               <option value="none">なし</option>
               <option value="little">少し</option>
               <option value="much">あり</option>
@@ -397,6 +384,7 @@
           <label>
             <span>睡眠の自己評価</span>
             <select name="sleepQuality">
+              <option value="unrecorded">未記録</option>
               <option value="good">良い</option>
               <option value="normal">普通</option>
               <option value="bad">悪い</option>

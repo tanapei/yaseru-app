@@ -35,7 +35,8 @@ body {
 
 body {
   min-height: 100dvh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background:
     radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.7), transparent 26%),
     linear-gradient(135deg, var(--bg) 0%, #ffe6ae 44%, var(--bg-2) 100%);
@@ -199,6 +200,7 @@ h1 {
   border-radius: 50%;
   background: radial-gradient(circle, rgba(248, 183, 49, 0.55), transparent 70%);
   animation: pulseHalo 3.2s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .hero-metrics {
@@ -241,6 +243,8 @@ h1 {
 }
 
 .hero-action {
+  position: relative;
+  z-index: 1;
   min-width: 88px;
   padding: 0 16px;
 }
@@ -444,7 +448,7 @@ h1 {
 .task-toggle {
   position: relative;
   overflow: hidden;
-  min-height: 64px;
+  min-height: 56px;
   padding: 12px 12px 12px 44px;
   border-radius: 16px;
   text-align: left;
@@ -473,8 +477,8 @@ h1 {
 
 .task-toggle .task-label {
   display: block;
-  font-size: 0.87rem;
-  line-height: 1.28;
+  font-size: 0.8rem;
+  line-height: 1.2;
   font-weight: 700;
 }
 
@@ -753,7 +757,7 @@ h1 {
 
   .hero-card,
   .overview-panel {
-    padding: 14px;
+    padding: 12px;
   }
 
   .overview-panel {
@@ -767,16 +771,27 @@ h1 {
   }
 
   .habit-card {
-    padding: 12px;
+    padding: 10px;
   }
 
   .task-toggle {
-    min-height: 58px;
-    padding-left: 40px;
+    min-height: 50px;
+    padding: 10px 10px 10px 38px;
   }
 
   .task-toggle .task-label {
-    font-size: 0.8rem;
+    font-size: 0.72rem;
+    line-height: 1.15;
+  }
+}
+
+@media (max-height: 820px) {
+  .app-shell {
+    min-height: auto;
+  }
+
+  .dashboard {
+    grid-template-rows: auto auto auto;
   }
 }
 

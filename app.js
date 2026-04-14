@@ -1,9 +1,9 @@
 const STORAGE_KEY = "yaseru-app-state";
-const PLAN_VERSION = "2026-04-15-checklist-v3";
+const PLAN_VERSION = "2026-04-15-checklist-v4";
 const TODAY_TARGET_DATE = "2026-05-15";
 const TASK_GROUPS = {
   meal: ["mealProtein", "mealNoDrink", "mealNoLateSnack"],
-  exercise: ["exerciseWalk", "exerciseBonus", "exerciseSteps"],
+  exercise: ["exercisePlank", "exerciseLegRaise", "exerciseSquat", "exerciseSteps"],
   sleep: ["sleepHours", "sleepBedtime", "sleepNoScreen"],
 };
 const TONE_COLORS = {
@@ -17,7 +17,6 @@ const DEFAULT_PROFILE = {
   currentWeightStart: 66.5,
   targetWeight: 62.5,
   targetDate: TODAY_TARGET_DATE,
-  dailyExerciseGoalMinutes: 45,
   dailyStepGoal: 8000,
   dailySleepGoalHours: 7.5,
   bedtimeTarget: "00:30",
@@ -82,6 +81,8 @@ function mapUi() {
     currentWeight: document.getElementById("currentWeight"),
     weightProgress: document.getElementById("weightProgress"),
     clearCount: document.getElementById("clearCount"),
+    trendCaption: document.getElementById("trendCaption"),
+    miniWeightTrend: document.getElementById("miniWeightTrend"),
     mealCount: document.getElementById("mealCount"),
     exerciseCount: document.getElementById("exerciseCount"),
     sleepCount: document.getElementById("sleepCount"),
@@ -176,6 +177,10 @@ function renderHero() {
   const remainingWeight = Math.max(effectiveWeight - profile.targetWeight, 0);
   const daysRemaining = Math.max(getDaysRemaining(profile.targetDate), 0);
   const weightProgress = calculateWeightProgress(effectiveWeight, profile);
+  const recentWeights = buildRecentHistory();
+  const latestWeightedDay = [...recentWeights]
+    .reverse()
+    .find((item) => typeof item.weight === "number" && item.weight > 0);
 
   ui.remainingWeight.textContent = remainingWeight.toFixed(1);
   ui.remainingDays.textContent = String(daysRemaining);
@@ -184,7 +189,11 @@ function renderHero() {
   ui.weightProgress.textContent = `${weightProgress}%`;
   ui.clearCount.textContent = `${todayScore.done} / ${todayScore.total}`;
   ui.overallScore.textContent = `${todayScore.percent}%`;
+  ui.trendCaption.textContent = latestWeightedDay
+    ? latestWeightedDay.weightLabel
+    : "7 days";
   setProgress(todayScore.percent);
+  drawMiniWeightTrend(recentWeights);
 }
 
 function renderTaskGroups() {
@@ -232,12 +241,9 @@ function renderTaskList(category, container, countNode, cardNode, entry, taskDef
 }
 
 function getTaskDefinitions(date, profile) {
-  const day = date.getDay();
-  const isStrengthDay = [1, 3, 5].includes(day);
-
   return {
     mealProtein: {
-      label: "毎食 たんぱく質1品",
+      label: "たんぱく質1品 x 3",
       tone: "meal",
     },
     mealNoDrink: {
@@ -245,15 +251,19 @@ function getTaskDefinitions(date, profile) {
       tone: "meal",
     },
     mealNoLateSnack: {
-      label: "21時以降 0",
+      label: "遅い夜は ご飯半分",
       tone: "meal",
     },
-    exerciseWalk: {
-      label: `早歩き ${profile.dailyExerciseGoalMinutes}分`,
+    exercisePlank: {
+      label: "プランク 60秒 x 3",
       tone: "move",
     },
-    exerciseBonus: {
-      label: isStrengthDay ? "筋トレ 12分" : "ストレッチ 10分",
+    exerciseLegRaise: {
+      label: "レッグレイズ 15回 x 3",
+      tone: "move",
+    },
+    exerciseSquat: {
+      label: "スクワット 20回 x 3",
       tone: "move",
     },
     exerciseSteps: {
@@ -285,7 +295,6 @@ function handleSetupSubmit(event) {
     currentWeightStart: Number(formData.get("currentWeightStart")),
     targetWeight: Number(formData.get("targetWeight")),
     targetDate: String(formData.get("targetDate")),
-    dailyExerciseGoalMinutes: Number(formData.get("dailyExerciseGoalMinutes")),
     dailyStepGoal: Number(formData.get("dailyStepGoal")),
     dailySleepGoalHours: Number(formData.get("dailySleepGoalHours")),
     bedtimeTarget: DEFAULT_PROFILE.bedtimeTarget,
@@ -358,8 +367,6 @@ function fillSetupForm() {
   ui.setupForm.elements.currentWeightStart.value = profile.currentWeightStart;
   ui.setupForm.elements.targetWeight.value = profile.targetWeight;
   ui.setupForm.elements.targetDate.value = profile.targetDate;
-  ui.setupForm.elements.dailyExerciseGoalMinutes.value =
-    profile.dailyExerciseGoalMinutes;
   ui.setupForm.elements.dailyStepGoal.value = profile.dailyStepGoal;
   ui.setupForm.elements.dailySleepGoalHours.value = profile.dailySleepGoalHours;
 }
@@ -414,8 +421,9 @@ function defaultDailyRecord() {
       mealProtein: false,
       mealNoDrink: false,
       mealNoLateSnack: false,
-      exerciseWalk: false,
-      exerciseBonus: false,
+      exercisePlank: false,
+      exerciseLegRaise: false,
+      exerciseSquat: false,
       exerciseSteps: false,
       sleepHours: false,
       sleepBedtime: false,
@@ -511,7 +519,7 @@ function renderHistory() {
     const fragment = ui.historyItemTemplate.content.cloneNode(true);
     fragment.querySelector(".history-date").textContent = formatDateLabel(item.date);
     fragment.querySelector(".history-meta").textContent =
-      `${item.weightLabel} / ${item.done} / 9`;
+      `${item.weightLabel} / ${item.done} / ${item.total}`;
     fragment.querySelector(".history-score").textContent = `${item.percent}%`;
     ui.historyList.appendChild(fragment);
   });
@@ -532,6 +540,7 @@ function buildRecentHistory() {
     days.push({
       date: dateKey,
       done: score.done,
+      total: score.total,
       percent: score.percent,
       weightLabel:
         typeof entry.weight === "number" && entry.weight > 0
@@ -593,6 +602,59 @@ function drawSparkline(recent) {
     circle.setAttribute("cy", y.toFixed(2));
     circle.setAttribute("r", "4");
     circle.setAttribute("fill", "#f8b731");
+    svg.appendChild(circle);
+  });
+}
+
+function drawMiniWeightTrend(recent) {
+  const svg = ui.miniWeightTrend;
+  svg.innerHTML = "";
+
+  const weights = recent
+    .map((item) => item.weight)
+    .filter((weight) => typeof weight === "number" && weight > 0);
+
+  if (weights.length === 0) {
+    svg.innerHTML =
+      '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="#6e6a63" font-size="10">no data</text>';
+    return;
+  }
+
+  let lastKnown = weights[0];
+  const normalizedWeights = recent.map((item) => {
+    if (typeof item.weight === "number" && item.weight > 0) {
+      lastKnown = item.weight;
+    }
+    return lastKnown;
+  });
+
+  const min = Math.min(...normalizedWeights);
+  const max = Math.max(...normalizedWeights);
+  const span = Math.max(max - min, 1);
+  const points = normalizedWeights.map((weight, index) => {
+    const x = 12 + (index * 216) / Math.max(normalizedWeights.length - 1, 1);
+    const y = 50 - ((weight - min) / span) * 34;
+    return [x, y];
+  });
+  const pathData = points
+    .map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`)
+    .join(" ");
+
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", pathData);
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke", "#f15a29");
+  path.setAttribute("stroke-width", "3.5");
+  path.setAttribute("stroke-linecap", "round");
+  path.setAttribute("stroke-linejoin", "round");
+  svg.appendChild(path);
+
+  points.forEach(([x, y], index) => {
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", x.toFixed(2));
+    circle.setAttribute("cy", y.toFixed(2));
+    circle.setAttribute("r", index === points.length - 1 ? "4" : "2.6");
+    circle.setAttribute("fill", index === points.length - 1 ? "#28b88e" : "#f8b731");
     svg.appendChild(circle);
   });
 }

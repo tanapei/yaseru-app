@@ -57,7 +57,7 @@
             <p id="goalCaption" class="hero-caption">66.5 → 62.5</p>
           </div>
           <button class="hero-action" type="button" data-open-modal="weight-modal">
-            体重
+            体重入力
           </button>
         </section>
 
@@ -90,7 +90,19 @@
             </div>
             <div class="summary-item">
               <span>clear</span>
-              <strong id="clearCount">0 / 9</strong>
+              <strong id="clearCount">0 / 10</strong>
+            </div>
+            <div class="weight-trend">
+              <div class="weight-trend-head">
+                <span>trend</span>
+                <strong id="trendCaption">7 days</strong>
+              </div>
+              <svg
+                id="miniWeightTrend"
+                viewBox="0 0 240 60"
+                preserveAspectRatio="none"
+                aria-label="体重推移"
+              ></svg>
             </div>
           </div>
         </section>
@@ -147,20 +159,20 @@
           <article class="plan-card meal">
             <p class="plan-title">食事</p>
             <ul class="plan-list">
-              <li>朝: 卵2個 or ギリシャヨーグルト</li>
-              <li>昼: ご飯150g + 鶏/魚/豆腐 + 野菜</li>
-              <li>夜: ご飯100g + たんぱく質 + 汁物</li>
-              <li>甘い飲み物 0 / 夜食 0</li>
+              <li>P1品: 卵 / 鶏 / 魚 / 豆腐 / 納豆 / ヨーグルト</li>
+              <li>昼: ご飯150g + P1品 + 野菜</li>
+              <li>遅い夜: ご飯半分 + P1品 + 汁物</li>
+              <li>甘い飲み物 0</li>
             </ul>
           </article>
 
           <article class="plan-card move">
             <p class="plan-title">運動</p>
             <ul class="plan-list">
-              <li>毎日: 早歩き45分</li>
               <li>毎日: 8,000歩</li>
-              <li>月水金: 筋トレ12分</li>
-              <li>火木土日: ストレッチ10分</li>
+              <li>毎日: プランク 60秒 x 3</li>
+              <li>毎日: レッグレイズ 15回 x 3</li>
+              <li>毎日: スクワット 20回 x 3</li>
             </ul>
           </article>
 
@@ -223,14 +235,6 @@
           <label>
             <span>目標期限</span>
             <input name="targetDate" type="date" required />
-          </label>
-          <label>
-            <span>早歩き (分)</span>
-            <select name="dailyExerciseGoalMinutes">
-              <option value="30">30</option>
-              <option value="45">45</option>
-              <option value="60">60</option>
-            </select>
           </label>
           <label>
             <span>歩数</span>

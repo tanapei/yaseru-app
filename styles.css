@@ -303,15 +303,26 @@ h1 {
 .habit-lines {
   margin-top: 10px;
   display: grid;
-  gap: 6px;
+  gap: 5px;
   font-size: 0.85rem;
   color: var(--muted);
   line-height: 1.35;
   flex: 1;
 }
 
+.habit-advice {
+  margin-top: 2px;
+  padding: 8px 9px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.64);
+  color: var(--text);
+  font-size: 0.77rem;
+  line-height: 1.35;
+}
+
 .habit-button {
   margin-top: 12px;
+  min-height: 42px;
   background: rgba(255, 255, 255, 0.74);
   color: var(--text);
 }
@@ -408,6 +419,23 @@ h1 {
   font-size: 0.9rem;
 }
 
+.coach-note {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.coach-note-label {
+  margin-bottom: 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .history-block {
   display: grid;
   gap: 14px;
@@ -489,7 +517,12 @@ h1 {
   }
 
   .habit-lines {
-    font-size: 0.79rem;
+    font-size: 0.77rem;
+  }
+
+  .habit-advice {
+    font-size: 0.73rem;
+    padding: 7px 8px;
   }
 
   .habit-button,

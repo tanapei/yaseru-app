@@ -95,6 +95,9 @@
             <div class="habit-lines">
               <p id="mealStatusLine">朝・昼・夜を記録してみましょう</p>
               <p id="snackStatusLine">間食: 未記録 / 水分: 0杯</p>
+              <p id="mealAdviceLine" class="habit-advice">
+                次の食事は野菜とたんぱく質を先に確保しましょう
+              </p>
             </div>
             <button class="habit-button" type="button" data-open-modal="meal-modal">
               食事を記録
@@ -112,6 +115,9 @@
             <div class="habit-lines">
               <p id="exerciseStatusLine">まだ運動は未記録です</p>
               <p id="stepsStatusLine">歩数: 0歩</p>
+              <p id="exerciseAdviceLine" class="habit-advice">
+                まずは早歩きから始められるようにします
+              </p>
             </div>
             <button class="habit-button" type="button" data-open-modal="exercise-modal">
               運動を記録
@@ -129,6 +135,9 @@
             <div class="habit-lines">
               <p id="sleepStatusLine">昨夜の睡眠を記録しましょう</p>
               <p id="sleepDetailLine">目標睡眠に近づけることが最優先です</p>
+              <p id="sleepAdviceLine" class="habit-advice">
+                就寝前の行動も具体的に案内します
+              </p>
             </div>
             <button class="habit-button" type="button" data-open-modal="sleep-modal">
               睡眠を記録
@@ -242,6 +251,12 @@
           </div>
           <button class="modal-close" type="button" data-close-modal>閉じる</button>
         </div>
+        <div class="coach-note">
+          <p class="coach-note-label">今日の食事指示</p>
+          <p id="mealCoachNote">
+            次の食事は野菜1皿、たんぱく質1品、主食は普通盛りを目安にします。
+          </p>
+        </div>
         <form id="mealForm" class="form-grid">
           <label>
             <span>朝食</span>
@@ -294,6 +309,12 @@
           </div>
           <button class="modal-close" type="button" data-close-modal>閉じる</button>
         </div>
+        <div class="coach-note">
+          <p class="coach-note-label">今日の運動指示</p>
+          <p id="exerciseCoachNote">
+            まずは早歩きで目標分を確保し、週2回は筋トレを入れる流れにします。
+          </p>
+        </div>
         <form id="exerciseForm" class="form-grid">
           <label>
             <span>運動したか</span>
@@ -344,6 +365,12 @@
             <h2>睡眠を記録</h2>
           </div>
           <button class="modal-close" type="button" data-close-modal>閉じる</button>
+        </div>
+        <div class="coach-note">
+          <p class="coach-note-label">今日の睡眠指示</p>
+          <p id="sleepCoachNote">
+            今夜の就寝目安と、寝る前にやめることをここで案内します。
+          </p>
         </div>
         <form id="sleepForm" class="form-grid">
           <label>

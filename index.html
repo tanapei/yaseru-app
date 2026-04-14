@@ -9,21 +9,28 @@
     <title>YASERU</title>
     <meta
       name="description"
-      content="食事、運動、睡眠を一画面で管理できるスマホ向けダイエットアプリ"
+      content="食事、運動、睡眠をチェックだけで管理するスマホ向けダイエットアプリ"
     />
-    <meta name="theme-color" content="#f6efe3" />
+    <meta name="theme-color" content="#fff3d9" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="bg-orb orb-a"></div>
+    <div class="bg-orb orb-b"></div>
+    <div class="bg-orb orb-c"></div>
+
     <div class="app-shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">1 day. 3 habits.</p>
+          <p class="eyebrow">Belly down. Face sharp.</p>
           <h1>YASERU</h1>
         </div>
         <div class="topbar-actions">
+          <button class="icon-button" type="button" data-open-modal="plan-modal">
+            PLAN
+          </button>
           <button class="icon-button" type="button" data-open-modal="history-modal">
             履歴
           </button>
@@ -36,23 +43,21 @@
       <main class="dashboard">
         <section class="hero-card">
           <div class="hero-copy">
-            <p class="hero-label">目標まで</p>
+            <p class="hero-label">May 15, 2026</p>
             <div class="hero-metrics">
-              <div>
-                <span id="remainingWeight" class="metric-large">-</span>
+              <div class="hero-metric-block">
+                <span id="remainingWeight" class="metric-large">4.0</span>
                 <span class="metric-unit">kg</span>
               </div>
-              <div>
-                <span id="remainingDays" class="metric-large">-</span>
+              <div class="hero-metric-block">
+                <span id="remainingDays" class="metric-large">30</span>
                 <span class="metric-unit">日</span>
               </div>
             </div>
-            <p id="goalCaption" class="hero-caption">
-              まずは目標を決めましょう
-            </p>
+            <p id="goalCaption" class="hero-caption">66.5 → 62.5</p>
           </div>
           <button class="hero-action" type="button" data-open-modal="weight-modal">
-            体重入力
+            体重
           </button>
         </section>
 
@@ -60,92 +65,115 @@
           <div class="progress-ring" aria-label="今日の達成率">
             <svg viewBox="0 0 120 120" role="img">
               <circle class="track" cx="60" cy="60" r="48"></circle>
-              <circle id="progressCircle" class="progress" cx="60" cy="60" r="48"></circle>
+              <circle
+                id="progressCircle"
+                class="progress"
+                cx="60"
+                cy="60"
+                r="48"
+              ></circle>
             </svg>
             <div class="progress-center">
               <span id="overallScore" class="progress-value">0%</span>
-              <span class="progress-label">今日の達成率</span>
+              <span class="progress-label">today</span>
             </div>
           </div>
+
           <div class="summary-list">
             <div class="summary-item">
-              <span>現在体重</span>
-              <strong id="currentWeight">- kg</strong>
+              <span>体重</span>
+              <strong id="currentWeight">66.5 kg</strong>
             </div>
             <div class="summary-item">
-              <span>目標体重</span>
-              <strong id="targetWeight">- kg</strong>
-            </div>
-            <div class="summary-item">
-              <span>進捗率</span>
+              <span>残り</span>
               <strong id="weightProgress">0%</strong>
+            </div>
+            <div class="summary-item">
+              <span>clear</span>
+              <strong id="clearCount">0 / 9</strong>
             </div>
           </div>
         </section>
 
         <section class="habit-grid">
-          <article class="habit-card meal">
+          <article class="habit-card meal" id="mealCard">
             <div class="habit-card-head">
               <div>
                 <p class="habit-kicker">Food</p>
                 <h2>食事</h2>
               </div>
-              <strong id="mealScore">0%</strong>
+              <strong id="mealCount">0/3</strong>
             </div>
-            <div class="habit-lines">
-              <p id="mealStatusLine">朝・昼・夜を記録してみましょう</p>
-              <p id="snackStatusLine">間食: 未記録 / 水分: 0杯</p>
-              <p id="mealAdviceLine" class="habit-advice">
-                次の食事は野菜とたんぱく質を先に確保しましょう
-              </p>
-            </div>
-            <button class="habit-button" type="button" data-open-modal="meal-modal">
-              食事を記録
-            </button>
+            <div class="task-list" id="mealTasks"></div>
           </article>
 
-          <article class="habit-card move">
+          <article class="habit-card move" id="exerciseCard">
             <div class="habit-card-head">
               <div>
                 <p class="habit-kicker">Move</p>
                 <h2>運動</h2>
               </div>
-              <strong id="exerciseScore">0%</strong>
+              <strong id="exerciseCount">0/3</strong>
             </div>
-            <div class="habit-lines">
-              <p id="exerciseStatusLine">まだ運動は未記録です</p>
-              <p id="stepsStatusLine">歩数: 0歩</p>
-              <p id="exerciseAdviceLine" class="habit-advice">
-                まずは早歩きから始められるようにします
-              </p>
-            </div>
-            <button class="habit-button" type="button" data-open-modal="exercise-modal">
-              運動を記録
-            </button>
+            <div class="task-list" id="exerciseTasks"></div>
           </article>
 
-          <article class="habit-card sleep">
+          <article class="habit-card sleep" id="sleepCard">
             <div class="habit-card-head">
               <div>
                 <p class="habit-kicker">Sleep</p>
                 <h2>睡眠</h2>
               </div>
-              <strong id="sleepScore">0%</strong>
+              <strong id="sleepCount">0/3</strong>
             </div>
-            <div class="habit-lines">
-              <p id="sleepStatusLine">昨夜の睡眠を記録しましょう</p>
-              <p id="sleepDetailLine">目標睡眠に近づけることが最優先です</p>
-              <p id="sleepAdviceLine" class="habit-advice">
-                就寝前の行動も具体的に案内します
-              </p>
-            </div>
-            <button class="habit-button" type="button" data-open-modal="sleep-modal">
-              睡眠を記録
-            </button>
+            <div class="task-list" id="sleepTasks"></div>
           </article>
         </section>
-
       </main>
+    </div>
+
+    <div class="modal hidden" id="plan-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal></div>
+      <section class="modal-panel">
+        <div class="modal-head">
+          <div>
+            <p class="modal-kicker">Fixed plan</p>
+            <h2>1か月メニュー</h2>
+          </div>
+          <button class="modal-close" type="button" data-close-modal>閉じる</button>
+        </div>
+
+        <div class="plan-grid">
+          <article class="plan-card meal">
+            <p class="plan-title">食事</p>
+            <ul class="plan-list">
+              <li>朝: 卵2個 or ギリシャヨーグルト</li>
+              <li>昼: ご飯150g + 鶏/魚/豆腐 + 野菜</li>
+              <li>夜: ご飯100g + たんぱく質 + 汁物</li>
+              <li>甘い飲み物 0 / 夜食 0</li>
+            </ul>
+          </article>
+
+          <article class="plan-card move">
+            <p class="plan-title">運動</p>
+            <ul class="plan-list">
+              <li>毎日: 早歩き45分</li>
+              <li>毎日: 8,000歩</li>
+              <li>月水金: 筋トレ12分</li>
+              <li>火木土日: ストレッチ10分</li>
+            </ul>
+          </article>
+
+          <article class="plan-card sleep">
+            <p class="plan-title">睡眠</p>
+            <ul class="plan-list">
+              <li>7.5時間以上</li>
+              <li>00:30までに就寝</li>
+              <li>寝る30分前は画面OFF</li>
+            </ul>
+          </article>
+        </div>
+      </section>
     </div>
 
     <div class="modal hidden" id="setup-modal" aria-hidden="true">
@@ -153,56 +181,75 @@
       <section class="modal-panel">
         <div class="modal-head">
           <div>
-            <p class="modal-kicker">Goal setup</p>
-            <h2>目標を決める</h2>
+            <p class="modal-kicker">Profile</p>
+            <h2>目標設定</h2>
           </div>
           <button class="modal-close" type="button" data-close-modal>閉じる</button>
         </div>
         <form id="setupForm" class="form-grid">
           <label>
-            <span>現在体重 (kg)</span>
-            <input name="currentWeightStart" type="number" step="0.1" min="20" max="300" required />
+            <span>年齢</span>
+            <input name="age" type="number" min="18" max="80" required />
+          </label>
+          <label>
+            <span>性別</span>
+            <select name="sex">
+              <option value="male">男性</option>
+              <option value="female">女性</option>
+            </select>
+          </label>
+          <label>
+            <span>開始体重 (kg)</span>
+            <input
+              name="currentWeightStart"
+              type="number"
+              step="0.1"
+              min="20"
+              max="300"
+              required
+            />
           </label>
           <label>
             <span>目標体重 (kg)</span>
-            <input name="targetWeight" type="number" step="0.1" min="20" max="300" required />
+            <input
+              name="targetWeight"
+              type="number"
+              step="0.1"
+              min="20"
+              max="300"
+              required
+            />
           </label>
           <label>
             <span>目標期限</span>
             <input name="targetDate" type="date" required />
           </label>
           <label>
-            <span>1日の運動目標 (分)</span>
+            <span>早歩き (分)</span>
             <select name="dailyExerciseGoalMinutes">
-              <option value="15">15分</option>
-              <option value="20">20分</option>
-              <option value="30" selected>30分</option>
-              <option value="45">45分</option>
-              <option value="60">60分</option>
+              <option value="30">30</option>
+              <option value="45">45</option>
+              <option value="60">60</option>
             </select>
           </label>
           <label>
-            <span>1日の歩数目標</span>
+            <span>歩数</span>
             <select name="dailyStepGoal">
-              <option value="4000">4,000歩</option>
-              <option value="6000" selected>6,000歩</option>
-              <option value="8000">8,000歩</option>
-              <option value="10000">10,000歩</option>
-              <option value="12000">12,000歩</option>
+              <option value="6000">6,000</option>
+              <option value="8000">8,000</option>
+              <option value="10000">10,000</option>
             </select>
           </label>
           <label>
-            <span>目標睡眠時間</span>
+            <span>睡眠 (時間)</span>
             <select name="dailySleepGoalHours">
-              <option value="6">6時間</option>
-              <option value="6.5">6.5時間</option>
-              <option value="7" selected>7時間</option>
-              <option value="7.5">7.5時間</option>
-              <option value="8">8時間</option>
+              <option value="7">7.0</option>
+              <option value="7.5">7.5</option>
+              <option value="8">8.0</option>
             </select>
           </label>
           <p id="setupError" class="form-error" aria-live="polite"></p>
-          <button class="primary-button" type="submit">この目標で始める</button>
+          <button class="primary-button" type="submit">保存</button>
         </form>
       </section>
     </div>
@@ -220,177 +267,16 @@
         <form id="weightForm" class="form-grid">
           <label>
             <span>体重 (kg)</span>
-            <input name="weight" type="number" step="0.1" min="20" max="300" required />
+            <input
+              name="weight"
+              type="number"
+              step="0.1"
+              min="20"
+              max="300"
+              required
+            />
           </label>
-          <button class="primary-button" type="submit">保存する</button>
-        </form>
-      </section>
-    </div>
-
-    <div class="modal hidden" id="meal-modal" aria-hidden="true">
-      <div class="modal-backdrop" data-close-modal></div>
-      <section class="modal-panel">
-        <div class="modal-head">
-          <div>
-            <p class="modal-kicker">Food log</p>
-            <h2>食事を記録</h2>
-          </div>
-          <button class="modal-close" type="button" data-close-modal>閉じる</button>
-        </div>
-        <div class="coach-note">
-          <p class="coach-note-label">今日の食事指示</p>
-          <p id="mealCoachNote">
-            次の食事は野菜1皿、たんぱく質1品、主食は普通盛りを目安にします。
-          </p>
-        </div>
-        <form id="mealForm" class="form-grid">
-          <label>
-            <span>朝食</span>
-            <select name="breakfast">
-              <option value="unrecorded">未記録</option>
-              <option value="ate">食べた</option>
-              <option value="light">控えめ</option>
-            </select>
-          </label>
-          <label>
-            <span>昼食</span>
-            <select name="lunch">
-              <option value="unrecorded">未記録</option>
-              <option value="ate">食べた</option>
-              <option value="light">控えめ</option>
-            </select>
-          </label>
-          <label>
-            <span>夕食</span>
-            <select name="dinner">
-              <option value="unrecorded">未記録</option>
-              <option value="ate">食べた</option>
-              <option value="light">控えめ</option>
-            </select>
-          </label>
-          <label>
-            <span>間食</span>
-            <select name="snackLevel">
-              <option value="unrecorded">未記録</option>
-              <option value="none">なし</option>
-              <option value="little">少し</option>
-              <option value="much">あり</option>
-            </select>
-          </label>
-          <label>
-            <span>水分 (杯)</span>
-            <input name="waterCups" type="number" min="0" max="20" step="1" required />
-          </label>
-          <button class="primary-button" type="submit">保存する</button>
-        </form>
-      </section>
-    </div>
-
-    <div class="modal hidden" id="exercise-modal" aria-hidden="true">
-      <div class="modal-backdrop" data-close-modal></div>
-      <section class="modal-panel">
-        <div class="modal-head">
-          <div>
-            <p class="modal-kicker">Move log</p>
-            <h2>運動を記録</h2>
-          </div>
-          <button class="modal-close" type="button" data-close-modal>閉じる</button>
-        </div>
-        <div class="coach-note">
-          <p class="coach-note-label">今日の運動指示</p>
-          <p id="exerciseCoachNote">
-            まずは早歩きで目標分を確保し、週2回は筋トレを入れる流れにします。
-          </p>
-        </div>
-        <form id="exerciseForm" class="form-grid">
-          <label>
-            <span>運動したか</span>
-            <select name="exerciseDone">
-              <option value="false">未実施</option>
-              <option value="true">実施</option>
-            </select>
-          </label>
-          <label>
-            <span>運動種別</span>
-            <select name="exerciseType">
-              <option value="none">未選択</option>
-              <option value="walk">散歩</option>
-              <option value="strength">筋トレ</option>
-              <option value="cardio">有酸素</option>
-              <option value="stretch">ストレッチ</option>
-              <option value="other">その他</option>
-            </select>
-          </label>
-          <label>
-            <span>運動時間 (分)</span>
-            <select name="exerciseMinutes">
-              <option value="0">0分</option>
-              <option value="5">5分</option>
-              <option value="10">10分</option>
-              <option value="15">15分</option>
-              <option value="20">20分</option>
-              <option value="30">30分</option>
-              <option value="45">45分</option>
-              <option value="60">60分</option>
-            </select>
-          </label>
-          <label>
-            <span>歩数</span>
-            <input name="steps" type="number" min="0" max="100000" step="100" required />
-          </label>
-          <button class="primary-button" type="submit">保存する</button>
-        </form>
-      </section>
-    </div>
-
-    <div class="modal hidden" id="sleep-modal" aria-hidden="true">
-      <div class="modal-backdrop" data-close-modal></div>
-      <section class="modal-panel">
-        <div class="modal-head">
-          <div>
-            <p class="modal-kicker">Sleep log</p>
-            <h2>睡眠を記録</h2>
-          </div>
-          <button class="modal-close" type="button" data-close-modal>閉じる</button>
-        </div>
-        <div class="coach-note">
-          <p class="coach-note-label">今日の睡眠指示</p>
-          <p id="sleepCoachNote">
-            今夜の就寝目安と、寝る前にやめることをここで案内します。
-          </p>
-        </div>
-        <form id="sleepForm" class="form-grid">
-          <label>
-            <span>睡眠時間</span>
-            <select name="sleepHours">
-              <option value="4">4時間</option>
-              <option value="5">5時間</option>
-              <option value="6">6時間</option>
-              <option value="6.5">6.5時間</option>
-              <option value="7">7時間</option>
-              <option value="7.5">7.5時間</option>
-              <option value="8">8時間</option>
-              <option value="9">9時間</option>
-            </select>
-          </label>
-          <label>
-            <span>就寝時刻</span>
-            <input name="bedtime" type="time" required />
-          </label>
-          <label>
-            <span>起床時刻</span>
-            <input name="wakeTime" type="time" required />
-          </label>
-          <label>
-            <span>睡眠の自己評価</span>
-            <select name="sleepQuality">
-              <option value="unrecorded">未記録</option>
-              <option value="good">良い</option>
-              <option value="normal">普通</option>
-              <option value="bad">悪い</option>
-            </select>
-          </label>
-          <button class="primary-button" type="submit">保存する</button>
+          <button class="primary-button" type="submit">保存</button>
         </form>
       </section>
     </div>
@@ -401,13 +287,17 @@
         <div class="modal-head">
           <div>
             <p class="modal-kicker">7 day review</p>
-            <h2>直近 7 日の履歴</h2>
+            <h2>直近 7 日</h2>
           </div>
           <button class="modal-close" type="button" data-close-modal>閉じる</button>
         </div>
         <div class="history-block">
           <div class="history-chart">
-            <svg id="historySparkline" viewBox="0 0 320 120" preserveAspectRatio="none"></svg>
+            <svg
+              id="historySparkline"
+              viewBox="0 0 320 120"
+              preserveAspectRatio="none"
+            ></svg>
           </div>
           <div id="historyList" class="history-list"></div>
         </div>

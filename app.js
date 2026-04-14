@@ -1,72 +1,71 @@
 const STORAGE_KEY = "yaseru-app-state";
-const MEAL_LABELS = {
-  unrecorded: "未記録",
-  ate: "食べた",
-  light: "控えめ",
+const PLAN_VERSION = "2026-04-15-checklist-v3";
+const TODAY_TARGET_DATE = "2026-05-15";
+const TASK_GROUPS = {
+  meal: ["mealProtein", "mealNoDrink", "mealNoLateSnack"],
+  exercise: ["exerciseWalk", "exerciseBonus", "exerciseSteps"],
+  sleep: ["sleepHours", "sleepBedtime", "sleepNoScreen"],
 };
-const SNACK_LABELS = {
-  unrecorded: "未記録",
-  none: "なし",
-  little: "少し",
-  much: "あり",
+const TONE_COLORS = {
+  meal: "#ff8c5a",
+  move: "#28b88e",
+  sleep: "#4d8dff",
 };
-const EXERCISE_LABELS = {
-  none: "未選択",
-  walk: "散歩",
-  strength: "筋トレ",
-  cardio: "有酸素",
-  stretch: "ストレッチ",
-  other: "その他",
+const DEFAULT_PROFILE = {
+  age: 29,
+  sex: "male",
+  currentWeightStart: 66.5,
+  targetWeight: 62.5,
+  targetDate: TODAY_TARGET_DATE,
+  dailyExerciseGoalMinutes: 45,
+  dailyStepGoal: 8000,
+  dailySleepGoalHours: 7.5,
+  bedtimeTarget: "00:30",
+  planVersion: PLAN_VERSION,
 };
-const SLEEP_LABELS = {
-  unrecorded: "未記録",
-  good: "良い",
-  normal: "普通",
-  bad: "悪い",
-};
-
-const defaultDailyRecord = () => ({
-  weight: null,
-  meals: {
-    breakfast: "unrecorded",
-    lunch: "unrecorded",
-    dinner: "unrecorded",
-  },
-  snackLevel: "unrecorded",
-  waterCups: 0,
-  exerciseDone: false,
-  exerciseType: "none",
-  exerciseMinutes: 0,
-  steps: 0,
-  sleepHours: 0,
-  bedtime: "",
-  wakeTime: "",
-  sleepQuality: "unrecorded",
-});
 
 const state = loadState();
 const ui = mapUi();
 
+bindServiceWorker();
 initializeForms();
 bindModalEvents();
-bindServiceWorker();
+bindTaskEvents();
 refreshAll();
 
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return { profile: null, entries: {} };
+      return { profile: { ...DEFAULT_PROFILE }, entries: {} };
     }
 
     const parsed = JSON.parse(raw);
     return {
-      profile: parsed.profile ?? null,
-      entries: parsed.entries ?? {},
+      profile: migrateProfile(parsed.profile),
+      entries: migrateEntries(parsed.entries),
     };
   } catch (error) {
-    return { profile: null, entries: {} };
+    return { profile: { ...DEFAULT_PROFILE }, entries: {} };
   }
+}
+
+function migrateProfile(profile) {
+  if (!profile || profile.planVersion !== PLAN_VERSION) {
+    return { ...DEFAULT_PROFILE };
+  }
+
+  return {
+    ...DEFAULT_PROFILE,
+    ...profile,
+  };
+}
+
+function migrateEntries(entries) {
+  const safeEntries = entries && typeof entries === "object" ? entries : {};
+  return Object.fromEntries(
+    Object.entries(safeEntries).map(([date, entry]) => [date, normalizeEntry(entry)])
+  );
 }
 
 function saveState() {
@@ -81,28 +80,19 @@ function mapUi() {
     overallScore: document.getElementById("overallScore"),
     progressCircle: document.getElementById("progressCircle"),
     currentWeight: document.getElementById("currentWeight"),
-    targetWeight: document.getElementById("targetWeight"),
     weightProgress: document.getElementById("weightProgress"),
-    mealScore: document.getElementById("mealScore"),
-    exerciseScore: document.getElementById("exerciseScore"),
-    sleepScore: document.getElementById("sleepScore"),
-    mealStatusLine: document.getElementById("mealStatusLine"),
-    snackStatusLine: document.getElementById("snackStatusLine"),
-    mealAdviceLine: document.getElementById("mealAdviceLine"),
-    exerciseStatusLine: document.getElementById("exerciseStatusLine"),
-    stepsStatusLine: document.getElementById("stepsStatusLine"),
-    exerciseAdviceLine: document.getElementById("exerciseAdviceLine"),
-    sleepStatusLine: document.getElementById("sleepStatusLine"),
-    sleepDetailLine: document.getElementById("sleepDetailLine"),
-    sleepAdviceLine: document.getElementById("sleepAdviceLine"),
-    mealCoachNote: document.getElementById("mealCoachNote"),
-    exerciseCoachNote: document.getElementById("exerciseCoachNote"),
-    sleepCoachNote: document.getElementById("sleepCoachNote"),
+    clearCount: document.getElementById("clearCount"),
+    mealCount: document.getElementById("mealCount"),
+    exerciseCount: document.getElementById("exerciseCount"),
+    sleepCount: document.getElementById("sleepCount"),
+    mealTasks: document.getElementById("mealTasks"),
+    exerciseTasks: document.getElementById("exerciseTasks"),
+    sleepTasks: document.getElementById("sleepTasks"),
+    mealCard: document.getElementById("mealCard"),
+    exerciseCard: document.getElementById("exerciseCard"),
+    sleepCard: document.getElementById("sleepCard"),
     setupForm: document.getElementById("setupForm"),
     weightForm: document.getElementById("weightForm"),
-    mealForm: document.getElementById("mealForm"),
-    exerciseForm: document.getElementById("exerciseForm"),
-    sleepForm: document.getElementById("sleepForm"),
     setupError: document.getElementById("setupError"),
     historyList: document.getElementById("historyList"),
     historySparkline: document.getElementById("historySparkline"),
@@ -111,18 +101,12 @@ function mapUi() {
 }
 
 function initializeForms() {
-  const today = getLocalDateKey(new Date());
-  const targetDefaultDate = new Date();
-  targetDefaultDate.setDate(targetDefaultDate.getDate() + 60);
-
-  ui.setupForm.elements.targetDate.min = today;
-  ui.setupForm.elements.targetDate.value = getLocalDateKey(targetDefaultDate);
+  ui.setupForm.elements.targetDate.min = getLocalDateKey(new Date());
+  fillSetupForm();
+  fillWeightForm();
 
   ui.setupForm.addEventListener("submit", handleSetupSubmit);
   ui.weightForm.addEventListener("submit", handleWeightSubmit);
-  ui.mealForm.addEventListener("submit", handleMealSubmit);
-  ui.exerciseForm.addEventListener("submit", handleExerciseSubmit);
-  ui.sleepForm.addEventListener("submit", handleSleepSubmit);
 }
 
 function bindModalEvents() {
@@ -132,13 +116,29 @@ function bindModalEvents() {
       if (modalId === "history-modal") {
         renderHistory();
       }
-      fillFormDefaults(modalId);
+      if (modalId === "setup-modal") {
+        fillSetupForm();
+      }
+      if (modalId === "weight-modal") {
+        fillWeightForm();
+      }
       openModal(modalId);
     });
   });
 
   document.querySelectorAll("[data-close-modal]").forEach((button) => {
     button.addEventListener("click", closeActiveModal);
+  });
+}
+
+function bindTaskEvents() {
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-task-id]");
+    if (!button) {
+      return;
+    }
+
+    toggleTask(button.getAttribute("data-task-id"), button);
   });
 }
 
@@ -154,7 +154,6 @@ function bindServiceWorker() {
           if (hasPendingRefresh) {
             return;
           }
-
           hasPendingRefresh = true;
           window.location.reload();
         });
@@ -163,17 +162,134 @@ function bindServiceWorker() {
   }
 }
 
+function refreshAll() {
+  renderHero();
+  renderTaskGroups();
+}
+
+function renderHero() {
+  const profile = state.profile;
+  const todayEntry = getTodayEntry();
+  const todayScore = calculateScore(todayEntry);
+  const effectiveWeight =
+    todayEntry.weight ?? getLatestWeight() ?? profile.currentWeightStart;
+  const remainingWeight = Math.max(effectiveWeight - profile.targetWeight, 0);
+  const daysRemaining = Math.max(getDaysRemaining(profile.targetDate), 0);
+  const weightProgress = calculateWeightProgress(effectiveWeight, profile);
+
+  ui.remainingWeight.textContent = remainingWeight.toFixed(1);
+  ui.remainingDays.textContent = String(daysRemaining);
+  ui.goalCaption.textContent = `${profile.currentWeightStart.toFixed(1)} → ${profile.targetWeight.toFixed(1)}`;
+  ui.currentWeight.textContent = `${effectiveWeight.toFixed(1)} kg`;
+  ui.weightProgress.textContent = `${weightProgress}%`;
+  ui.clearCount.textContent = `${todayScore.done} / ${todayScore.total}`;
+  ui.overallScore.textContent = `${todayScore.percent}%`;
+  setProgress(todayScore.percent);
+}
+
+function renderTaskGroups() {
+  const entry = getTodayEntry();
+  const taskDefinitions = getTaskDefinitions(new Date(), state.profile);
+
+  renderTaskList("meal", ui.mealTasks, ui.mealCount, ui.mealCard, entry, taskDefinitions);
+  renderTaskList(
+    "exercise",
+    ui.exerciseTasks,
+    ui.exerciseCount,
+    ui.exerciseCard,
+    entry,
+    taskDefinitions
+  );
+  renderTaskList("sleep", ui.sleepTasks, ui.sleepCount, ui.sleepCard, entry, taskDefinitions);
+}
+
+function renderTaskList(category, container, countNode, cardNode, entry, taskDefinitions) {
+  const taskIds = TASK_GROUPS[category];
+  const doneCount = taskIds.filter((taskId) => entry.tasks[taskId]).length;
+  countNode.textContent = `${doneCount}/${taskIds.length}`;
+  cardNode.classList.toggle("is-hot", doneCount === taskIds.length);
+
+  container.innerHTML = "";
+
+  taskIds.forEach((taskId) => {
+    const definition = taskDefinitions[taskId];
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `task-toggle ${definition.tone}`;
+    button.setAttribute("data-task-id", taskId);
+    button.setAttribute("aria-pressed", entry.tasks[taskId] ? "true" : "false");
+
+    if (entry.tasks[taskId]) {
+      button.classList.add("checked");
+    }
+
+    const label = document.createElement("span");
+    label.className = "task-label";
+    label.textContent = definition.label;
+    button.appendChild(label);
+    container.appendChild(button);
+  });
+}
+
+function getTaskDefinitions(date, profile) {
+  const day = date.getDay();
+  const isStrengthDay = [1, 3, 5].includes(day);
+
+  return {
+    mealProtein: {
+      label: "毎食 たんぱく質1品",
+      tone: "meal",
+    },
+    mealNoDrink: {
+      label: "甘い飲み物 0",
+      tone: "meal",
+    },
+    mealNoLateSnack: {
+      label: "21時以降 0",
+      tone: "meal",
+    },
+    exerciseWalk: {
+      label: `早歩き ${profile.dailyExerciseGoalMinutes}分`,
+      tone: "move",
+    },
+    exerciseBonus: {
+      label: isStrengthDay ? "筋トレ 12分" : "ストレッチ 10分",
+      tone: "move",
+    },
+    exerciseSteps: {
+      label: `${profile.dailyStepGoal.toLocaleString("ja-JP")}歩`,
+      tone: "move",
+    },
+    sleepHours: {
+      label: `${profile.dailySleepGoalHours}時間`,
+      tone: "sleep",
+    },
+    sleepBedtime: {
+      label: `${profile.bedtimeTarget}まで`,
+      tone: "sleep",
+    },
+    sleepNoScreen: {
+      label: "寝る前30分 OFF",
+      tone: "sleep",
+    },
+  };
+}
+
 function handleSetupSubmit(event) {
   event.preventDefault();
 
   const formData = new FormData(event.currentTarget);
   const profile = {
+    age: Number(formData.get("age")),
+    sex: String(formData.get("sex")),
     currentWeightStart: Number(formData.get("currentWeightStart")),
     targetWeight: Number(formData.get("targetWeight")),
     targetDate: String(formData.get("targetDate")),
     dailyExerciseGoalMinutes: Number(formData.get("dailyExerciseGoalMinutes")),
     dailyStepGoal: Number(formData.get("dailyStepGoal")),
     dailySleepGoalHours: Number(formData.get("dailySleepGoalHours")),
+    bedtimeTarget: DEFAULT_PROFILE.bedtimeTarget,
+    planVersion: PLAN_VERSION,
   };
 
   const validation = validateProfile(profile);
@@ -182,8 +298,8 @@ function handleSetupSubmit(event) {
     return;
   }
 
-  ui.setupError.textContent = "";
   state.profile = profile;
+  ui.setupError.textContent = "";
   saveState();
   refreshAll();
   closeActiveModal();
@@ -191,193 +307,82 @@ function handleSetupSubmit(event) {
 
 function handleWeightSubmit(event) {
   event.preventDefault();
+
   const formData = new FormData(event.currentTarget);
   const entry = getTodayEntry();
   entry.weight = Number(formData.get("weight"));
   setTodayEntry(entry);
-  closeActiveModal();
   refreshAll();
+  closeActiveModal();
 }
 
-function handleMealSubmit(event) {
-  event.preventDefault();
-  const formData = new FormData(event.currentTarget);
+function toggleTask(taskId, button) {
   const entry = getTodayEntry();
-  entry.meals.breakfast = String(formData.get("breakfast"));
-  entry.meals.lunch = String(formData.get("lunch"));
-  entry.meals.dinner = String(formData.get("dinner"));
-  entry.snackLevel = String(formData.get("snackLevel"));
-  entry.waterCups = Number(formData.get("waterCups"));
+  entry.tasks[taskId] = !entry.tasks[taskId];
   setTodayEntry(entry);
-  closeActiveModal();
   refreshAll();
+
+  const freshButton = document.querySelector(`[data-task-id="${taskId}"]`);
+  if (freshButton && entry.tasks[taskId]) {
+    createSparkBurst(
+      freshButton,
+      freshButton.classList.contains("meal")
+        ? "meal"
+        : freshButton.classList.contains("move")
+          ? "move"
+          : "sleep"
+    );
+  }
 }
 
-function handleExerciseSubmit(event) {
-  event.preventDefault();
-  const formData = new FormData(event.currentTarget);
-  const entry = getTodayEntry();
-  entry.exerciseDone = String(formData.get("exerciseDone")) === "true";
-  entry.exerciseType = String(formData.get("exerciseType"));
-  entry.exerciseMinutes = Number(formData.get("exerciseMinutes"));
-  entry.steps = Number(formData.get("steps"));
-  setTodayEntry(entry);
-  closeActiveModal();
-  refreshAll();
+function createSparkBurst(button, tone) {
+  const color = TONE_COLORS[tone] ?? "#f8b731";
+
+  for (let index = 0; index < 6; index += 1) {
+    const spark = document.createElement("span");
+    spark.className = "spark";
+    spark.style.background = color;
+    spark.style.left = `${18 + Math.random() * 60}%`;
+    spark.style.top = `${20 + Math.random() * 50}%`;
+    spark.style.setProperty("--dx", `${-28 + Math.random() * 56}px`);
+    spark.style.setProperty("--dy", `${-36 + Math.random() * 24}px`);
+    button.appendChild(spark);
+    window.setTimeout(() => spark.remove(), 620);
+  }
 }
 
-function handleSleepSubmit(event) {
-  event.preventDefault();
-  const formData = new FormData(event.currentTarget);
-  const entry = getTodayEntry();
-  entry.sleepHours = Number(formData.get("sleepHours"));
-  entry.bedtime = String(formData.get("bedtime"));
-  entry.wakeTime = String(formData.get("wakeTime"));
-  entry.sleepQuality = String(formData.get("sleepQuality"));
-  setTodayEntry(entry);
-  closeActiveModal();
-  refreshAll();
+function fillSetupForm() {
+  const profile = state.profile;
+  ui.setupForm.elements.age.value = profile.age;
+  ui.setupForm.elements.sex.value = profile.sex;
+  ui.setupForm.elements.currentWeightStart.value = profile.currentWeightStart;
+  ui.setupForm.elements.targetWeight.value = profile.targetWeight;
+  ui.setupForm.elements.targetDate.value = profile.targetDate;
+  ui.setupForm.elements.dailyExerciseGoalMinutes.value =
+    profile.dailyExerciseGoalMinutes;
+  ui.setupForm.elements.dailyStepGoal.value = profile.dailyStepGoal;
+  ui.setupForm.elements.dailySleepGoalHours.value = profile.dailySleepGoalHours;
+}
+
+function fillWeightForm() {
+  const latestWeight =
+    getTodayEntry().weight ?? getLatestWeight() ?? state.profile.currentWeightStart;
+  ui.weightForm.elements.weight.value = latestWeight;
 }
 
 function validateProfile(profile) {
   if (profile.targetWeight >= profile.currentWeightStart) {
-    return "目標体重は現在体重より小さくしてください。";
+    return "目標体重は開始体重より小さくしてください。";
   }
 
   const today = new Date();
   const target = new Date(`${profile.targetDate}T00:00:00`);
   const diffDays = Math.ceil((target - today) / 86400000);
-
   if (Number.isNaN(target.getTime()) || diffDays < 1) {
-    return "目標期限は今日より先の日付にしてください。";
-  }
-
-  const totalLoss = profile.currentWeightStart - profile.targetWeight;
-  if (diffDays > 0 && totalLoss / diffDays > 0.15) {
-    return "短期間で大きく減らす目標です。無理のない範囲で見直してください。";
+    return "目標期限は今日より先にしてください。";
   }
 
   return "";
-}
-
-function refreshAll() {
-  if (!state.profile) {
-    openModal("setup-modal");
-  }
-
-  const todayEntry = getTodayEntry();
-  const scores = calculateScores(todayEntry, state.profile);
-  renderHeader(todayEntry, scores);
-  renderCards(todayEntry, scores);
-}
-
-function renderHeader(entry, scores) {
-  const profile = state.profile;
-
-  if (!profile) {
-    ui.remainingWeight.textContent = "-";
-    ui.remainingDays.textContent = "-";
-    ui.goalCaption.textContent = "まずは目標を決めましょう";
-    ui.currentWeight.textContent = "- kg";
-    ui.targetWeight.textContent = "- kg";
-    ui.weightProgress.textContent = "0%";
-    ui.overallScore.textContent = "0%";
-    setProgress(0);
-    return;
-  }
-
-  const effectiveWeight =
-    entry.weight ?? getLatestWeight() ?? profile.currentWeightStart;
-  const remainingWeight = Math.max(effectiveWeight - profile.targetWeight, 0);
-  const remainingDays = Math.max(getDaysRemaining(profile.targetDate), 0);
-  const progressWeight = calculateWeightProgress(effectiveWeight, profile);
-
-  ui.remainingWeight.textContent = remainingWeight.toFixed(1);
-  ui.remainingDays.textContent = String(remainingDays);
-  ui.goalCaption.textContent =
-    remainingWeight <= 0
-      ? "目標達成です。次の目標を設定しましょう"
-      : `${effectiveWeight.toFixed(1)}kg からあと ${remainingWeight.toFixed(1)}kg`;
-  ui.currentWeight.textContent = `${effectiveWeight.toFixed(1)} kg`;
-  ui.targetWeight.textContent = `${profile.targetWeight.toFixed(1)} kg`;
-  ui.weightProgress.textContent = `${progressWeight}%`;
-  ui.overallScore.textContent = `${scores.overall}%`;
-  setProgress(scores.overall);
-}
-
-function renderCards(entry, scores) {
-  const coachTips = buildCoachTips(entry, state.profile);
-
-  ui.mealScore.textContent = `${scores.meal}%`;
-  ui.exerciseScore.textContent = `${scores.exercise}%`;
-  ui.sleepScore.textContent = `${scores.sleep}%`;
-
-  ui.mealStatusLine.textContent = `朝 ${MEAL_LABELS[entry.meals.breakfast]} / 昼 ${MEAL_LABELS[entry.meals.lunch]} / 夜 ${MEAL_LABELS[entry.meals.dinner]}`;
-  ui.snackStatusLine.textContent = `間食: ${SNACK_LABELS[entry.snackLevel]} / 水分: ${entry.waterCups}杯`;
-  ui.mealAdviceLine.textContent = coachTips.meal;
-  ui.mealCoachNote.textContent = coachTips.mealDetail;
-
-  ui.exerciseStatusLine.textContent = entry.exerciseDone
-    ? `${EXERCISE_LABELS[entry.exerciseType]} ${entry.exerciseMinutes}分`
-    : "まだ運動は未記録です";
-  ui.stepsStatusLine.textContent = `歩数: ${entry.steps.toLocaleString("ja-JP")}歩`;
-  ui.exerciseAdviceLine.textContent = coachTips.exercise;
-  ui.exerciseCoachNote.textContent = coachTips.exerciseDetail;
-
-  ui.sleepStatusLine.textContent =
-    entry.sleepHours > 0
-      ? `${entry.sleepHours}時間 / ${SLEEP_LABELS[entry.sleepQuality]}`
-      : "昨夜の睡眠を記録しましょう";
-  ui.sleepDetailLine.textContent =
-    entry.bedtime && entry.wakeTime
-      ? `${entry.bedtime} 就寝 / ${entry.wakeTime} 起床`
-      : "目標睡眠に近づけることが最優先です";
-  ui.sleepAdviceLine.textContent = coachTips.sleep;
-  ui.sleepCoachNote.textContent = coachTips.sleepDetail;
-}
-
-function fillFormDefaults(modalId) {
-  const profile = state.profile;
-  const entry = getTodayEntry();
-
-  if (modalId === "setup-modal" && profile) {
-    ui.setupForm.elements.currentWeightStart.value = profile.currentWeightStart;
-    ui.setupForm.elements.targetWeight.value = profile.targetWeight;
-    ui.setupForm.elements.targetDate.value = profile.targetDate;
-    ui.setupForm.elements.dailyExerciseGoalMinutes.value =
-      profile.dailyExerciseGoalMinutes;
-    ui.setupForm.elements.dailyStepGoal.value = profile.dailyStepGoal;
-    ui.setupForm.elements.dailySleepGoalHours.value =
-      profile.dailySleepGoalHours;
-  }
-
-  if (modalId === "weight-modal") {
-    ui.weightForm.elements.weight.value =
-      entry.weight ?? getLatestWeight() ?? profile?.currentWeightStart ?? "";
-  }
-
-  if (modalId === "meal-modal") {
-    ui.mealForm.elements.breakfast.value = entry.meals.breakfast;
-    ui.mealForm.elements.lunch.value = entry.meals.lunch;
-    ui.mealForm.elements.dinner.value = entry.meals.dinner;
-    ui.mealForm.elements.snackLevel.value = entry.snackLevel;
-    ui.mealForm.elements.waterCups.value = entry.waterCups;
-  }
-
-  if (modalId === "exercise-modal") {
-    ui.exerciseForm.elements.exerciseDone.value = String(entry.exerciseDone);
-    ui.exerciseForm.elements.exerciseType.value = entry.exerciseType;
-    ui.exerciseForm.elements.exerciseMinutes.value = String(entry.exerciseMinutes);
-    ui.exerciseForm.elements.steps.value = String(entry.steps);
-  }
-
-  if (modalId === "sleep-modal") {
-    ui.sleepForm.elements.sleepHours.value = String(entry.sleepHours || 7);
-    ui.sleepForm.elements.bedtime.value = entry.bedtime || "23:30";
-    ui.sleepForm.elements.wakeTime.value = entry.wakeTime || "06:30";
-    ui.sleepForm.elements.sleepQuality.value =
-      entry.sleepQuality === "unrecorded" ? "normal" : entry.sleepQuality;
-  }
 }
 
 function openModal(modalId) {
@@ -402,6 +407,37 @@ function closeActiveModal() {
   });
 }
 
+function defaultDailyRecord() {
+  return {
+    weight: null,
+    tasks: {
+      mealProtein: false,
+      mealNoDrink: false,
+      mealNoLateSnack: false,
+      exerciseWalk: false,
+      exerciseBonus: false,
+      exerciseSteps: false,
+      sleepHours: false,
+      sleepBedtime: false,
+      sleepNoScreen: false,
+    },
+  };
+}
+
+function normalizeEntry(entry) {
+  const base = defaultDailyRecord();
+  return {
+    weight:
+      typeof entry?.weight === "number" && Number.isFinite(entry.weight)
+        ? entry.weight
+        : null,
+    tasks: {
+      ...base.tasks,
+      ...(entry?.tasks ?? {}),
+    },
+  };
+}
+
 function getTodayEntry() {
   const todayKey = getLocalDateKey(new Date());
   return normalizeEntry(state.entries[todayKey]);
@@ -413,263 +449,14 @@ function setTodayEntry(entry) {
   saveState();
 }
 
-function normalizeEntry(entry) {
-  const base = defaultDailyRecord();
-  if (!entry) {
-    return base;
-  }
-
+function calculateScore(entry) {
+  const taskIds = Object.values(TASK_GROUPS).flat();
+  const done = taskIds.filter((taskId) => entry.tasks[taskId]).length;
+  const total = taskIds.length;
   return {
-    ...base,
-    ...entry,
-    meals: {
-      ...base.meals,
-      ...(entry.meals ?? {}),
-    },
-  };
-}
-
-function buildCoachTips(entry, profile) {
-  if (!profile) {
-    return {
-      meal: "目標設定後に食事の具体的な指示を出します。",
-      mealDetail: "目標を入れると、食事量と水分の目安を今日の状況に合わせて表示します。",
-      exercise: "目標設定後に運動メニューを出します。",
-      exerciseDetail: "目標を入れると、早歩きや筋トレの具体量を今日の状況に合わせて表示します。",
-      sleep: "目標設定後に睡眠の具体的な指示を出します。",
-      sleepDetail: "目標を入れると、今夜の就寝目安と寝る前の行動を表示します。",
-    };
-  }
-
-  const strengthDays = countStrengthDaysLast7();
-  const targetBedtime = calculateTargetBedtime(
-    entry.wakeTime || "06:30",
-    profile.dailySleepGoalHours
-  );
-  const exerciseSplit = suggestExerciseSplit(profile.dailyExerciseGoalMinutes);
-
-  return {
-    meal: buildMealAdvice(entry),
-    mealDetail: buildMealDetail(entry),
-    exercise: buildExerciseAdvice(entry, profile, strengthDays, exerciseSplit),
-    exerciseDetail: buildExerciseDetail(
-      entry,
-      profile,
-      strengthDays,
-      exerciseSplit
-    ),
-    sleep: buildSleepAdvice(entry, profile, targetBedtime),
-    sleepDetail: buildSleepDetail(entry, profile, targetBedtime),
-  };
-}
-
-function buildMealAdvice(entry) {
-  if (entry.snackLevel === "much") {
-    return "今日は間食を追加しない。小腹が空いたら水か無糖茶を先に飲む。";
-  }
-
-  if (entry.waterCups < 6) {
-    return `次の食事までに水をあと${6 - entry.waterCups}杯。甘い飲み物は水か無糖茶に置き換える。`;
-  }
-
-  const recordedMeals = Object.values(entry.meals).filter(
-    (value) => value !== "unrecorded"
-  ).length;
-
-  if (recordedMeals < 3) {
-    return "次の食事は野菜1皿、たんぱく質1品、主食は普通盛りでそろえる。";
-  }
-
-  return "次の食事も野菜から食べ、たんぱく質を先に確保。夜は揚げ物より焼く・蒸す。";
-}
-
-function buildMealDetail(entry) {
-  if (entry.snackLevel === "much") {
-    return "次の食事は抜かず、野菜1皿とたんぱく質1品を先に食べます。間食は追加せず、どうしても空腹なら果物か無糖ヨーグルトにします。";
-  }
-
-  if (entry.waterCups < 6) {
-    return `水分は1日6杯以上を目安に、まずあと${6 - entry.waterCups}杯。飲み物は水か無糖茶を優先します。`;
-  }
-
-  return "次の食事は野菜1皿、たんぱく質1品、主食は普通盛りを基本にします。飲み物は水か無糖茶を選びます。";
-}
-
-function buildExerciseAdvice(entry, profile, strengthDays, exerciseSplit) {
-  if (!entry.exerciseDone) {
-    if (strengthDays < 2) {
-      return `今日は早歩き${profile.dailyExerciseGoalMinutes}分、その後にスクワット10回×3。`;
-    }
-
-    return `今日は早歩き${profile.dailyExerciseGoalMinutes}分。きつければ${exerciseSplit}に分けてOK。`;
-  }
-
-  if (entry.exerciseMinutes < profile.dailyExerciseGoalMinutes) {
-    return `あと${profile.dailyExerciseGoalMinutes - entry.exerciseMinutes}分だけ早歩きか階段で上乗せ。`;
-  }
-
-  if (entry.steps < profile.dailyStepGoal) {
-    return `今日は達成まであと${(profile.dailyStepGoal - entry.steps).toLocaleString("ja-JP")}歩。10分歩きを1回追加。`;
-  }
-
-  if (entry.exerciseType !== "strength" && strengthDays < 2) {
-    return "今週の筋トレ日を増やす。スクワット10回×3とプランク20秒×3を追加。";
-  }
-
-  return "今日は達成。明日も同じ時間に早歩きか筋トレを入れて流れを切らさない。";
-}
-
-function buildExerciseDetail(entry, profile, strengthDays, exerciseSplit) {
-  if (!entry.exerciseDone) {
-    if (strengthDays < 2) {
-      return `今日は早歩き${profile.dailyExerciseGoalMinutes}分を先に行い、その後にスクワット10回×3、壁腕立て10回×3を目安にします。`;
-    }
-
-    return `今日は早歩き${profile.dailyExerciseGoalMinutes}分を目標にします。まとめてできなければ${exerciseSplit}に分けて進めます。`;
-  }
-
-  if (entry.exerciseMinutes < profile.dailyExerciseGoalMinutes) {
-    return `目標まであと${profile.dailyExerciseGoalMinutes - entry.exerciseMinutes}分です。外に出られなければ室内の足踏みや階段でも大丈夫です。`;
-  }
-
-  if (entry.exerciseType !== "strength" && strengthDays < 2) {
-    return "今週は筋トレが少なめです。スクワット10回×3、プランク20秒×3を追加して、週2回の筋トレに近づけます。";
-  }
-
-  return "有酸素の目標は達成しています。余裕があれば筋トレを短く追加し、翌日も同じ時間帯に体を動かします。";
-}
-
-function buildSleepAdvice(entry, profile, targetBedtime) {
-  if (entry.sleepHours <= 0) {
-    return `今夜は${targetBedtime}までに寝る。就寝30分前はスマホを閉じる。`;
-  }
-
-  if (entry.sleepHours < profile.dailySleepGoalHours) {
-    return `今夜は${targetBedtime}就寝を目安に。夕方以降のカフェインを控える。`;
-  }
-
-  if (entry.sleepQuality === "bad") {
-    return "寝室を暗く涼しくし、今夜は就寝30分前から画面を見ない。";
-  }
-
-  return "今夜も同じ時刻帯で寝る。就寝30分前は画面オフを続ける。";
-}
-
-function buildSleepDetail(entry, profile, targetBedtime) {
-  if (entry.sleepHours <= 0) {
-    return `目標睡眠は${profile.dailySleepGoalHours}時間です。起床を固定し、今夜は${targetBedtime}までに寝て、寝る30分前から画面を閉じます。`;
-  }
-
-  if (entry.sleepHours < profile.dailySleepGoalHours) {
-    return `昨夜は目標より短めでした。今夜は${targetBedtime}就寝を目安にして、夜食と飲酒を控えます。`;
-  }
-
-  if (entry.sleepQuality === "bad") {
-    return "睡眠時間は足りていても質が低めです。寝室を暗く涼しくして、起床時刻を固定したまま就寝前の画面時間を減らします。";
-  }
-
-  return `今の睡眠ペースは良いです。今夜も${targetBedtime}前後を目安にして、同じ起床時刻を保ちます。`;
-}
-
-function countStrengthDaysLast7() {
-  let count = 0;
-
-  for (let index = 0; index < 7; index += 1) {
-    const date = new Date();
-    date.setDate(date.getDate() - index);
-    const entry = normalizeEntry(state.entries[getLocalDateKey(date)]);
-
-    if (entry.exerciseDone && entry.exerciseType === "strength") {
-      count += 1;
-    }
-  }
-
-  return count;
-}
-
-function suggestExerciseSplit(totalMinutes) {
-  if (totalMinutes <= 15) {
-    return "5分×3回";
-  }
-
-  if (totalMinutes <= 30) {
-    return "10分×3回";
-  }
-
-  if (totalMinutes <= 45) {
-    return "15分×3回";
-  }
-
-  return "15分×4回";
-}
-
-function calculateTargetBedtime(wakeTime, sleepHours) {
-  const [wakeHour, wakeMinute] = wakeTime.split(":").map(Number);
-  const wakeTotalMinutes = wakeHour * 60 + wakeMinute;
-  const sleepMinutes = Math.round(Number(sleepHours) * 60);
-  let bedtimeTotalMinutes = wakeTotalMinutes - sleepMinutes;
-
-  while (bedtimeTotalMinutes < 0) {
-    bedtimeTotalMinutes += 24 * 60;
-  }
-
-  const hours = String(Math.floor(bedtimeTotalMinutes / 60)).padStart(2, "0");
-  const minutes = String(bedtimeTotalMinutes % 60).padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
-
-function calculateScores(entry, profile) {
-  if (!profile) {
-    return { meal: 0, exercise: 0, sleep: 0, overall: 0 };
-  }
-
-  let mealScore = 0;
-  const mealValues = Object.values(entry.meals);
-  const recordedMeals = mealValues.filter((value) => value !== "unrecorded").length;
-  mealScore += Math.round((recordedMeals / 3) * 60);
-  if (entry.snackLevel === "none") {
-    mealScore += 20;
-  } else if (entry.snackLevel === "little") {
-    mealScore += 10;
-  }
-  mealScore += Math.min(Math.round((entry.waterCups / 6) * 20), 20);
-  mealScore = Math.min(mealScore, 100);
-
-  let exerciseScore = 0;
-  if (entry.exerciseDone) {
-    exerciseScore += 30;
-  }
-  exerciseScore += Math.min(
-    Math.round((entry.exerciseMinutes / profile.dailyExerciseGoalMinutes) * 40),
-    40
-  );
-  exerciseScore += Math.min(
-    Math.round((entry.steps / profile.dailyStepGoal) * 30),
-    30
-  );
-  exerciseScore = Math.min(exerciseScore, 100);
-
-  let sleepScore = 0;
-  if (entry.sleepHours > 0) {
-    sleepScore += Math.min(
-      Math.round((entry.sleepHours / profile.dailySleepGoalHours) * 70),
-      70
-    );
-    if (entry.sleepQuality === "good") {
-      sleepScore += 30;
-    } else if (entry.sleepQuality === "normal") {
-      sleepScore += 18;
-    } else if (entry.sleepQuality === "bad") {
-      sleepScore += 8;
-    }
-  }
-  sleepScore = Math.min(sleepScore, 100);
-
-  return {
-    meal: mealScore,
-    exercise: exerciseScore,
-    sleep: sleepScore,
-    overall: Math.round((mealScore + exerciseScore + sleepScore) / 3),
+    done,
+    total,
+    percent: Math.round((done / total) * 100),
   };
 }
 
@@ -687,6 +474,14 @@ function setProgress(value) {
   const clamped = Math.min(Math.max(value, 0), 100);
   const offset = circumference - (circumference * clamped) / 100;
   ui.progressCircle.style.strokeDashoffset = String(offset);
+
+  if (clamped >= 67) {
+    ui.progressCircle.style.stroke = "#28b88e";
+  } else if (clamped >= 34) {
+    ui.progressCircle.style.stroke = "#f8b731";
+  } else {
+    ui.progressCircle.style.stroke = "#ff8c5a";
+  }
 }
 
 function getDaysRemaining(targetDate) {
@@ -708,13 +503,6 @@ function getLatestWeight() {
   return datedEntries[datedEntries.length - 1][1].weight;
 }
 
-function getLocalDateKey(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function renderHistory() {
   const recent = buildRecentHistory();
   ui.historyList.innerHTML = "";
@@ -722,10 +510,9 @@ function renderHistory() {
   recent.forEach((item) => {
     const fragment = ui.historyItemTemplate.content.cloneNode(true);
     fragment.querySelector(".history-date").textContent = formatDateLabel(item.date);
-    fragment.querySelector(
-      ".history-meta"
-    ).textContent = `${item.weightLabel} / 食事 ${item.scores.meal}% / 運動 ${item.scores.exercise}% / 睡眠 ${item.scores.sleep}%`;
-    fragment.querySelector(".history-score").textContent = `${item.scores.overall}%`;
+    fragment.querySelector(".history-meta").textContent =
+      `${item.weightLabel} / ${item.done} / 9`;
+    fragment.querySelector(".history-score").textContent = `${item.percent}%`;
     ui.historyList.appendChild(fragment);
   });
 
@@ -733,7 +520,6 @@ function renderHistory() {
 }
 
 function buildRecentHistory() {
-  const profile = state.profile;
   const days = [];
 
   for (let index = 6; index >= 0; index -= 1) {
@@ -741,16 +527,17 @@ function buildRecentHistory() {
     date.setDate(date.getDate() - index);
     const dateKey = getLocalDateKey(date);
     const entry = normalizeEntry(state.entries[dateKey]);
-    const scores = calculateScores(entry, profile);
+    const score = calculateScore(entry);
 
     days.push({
       date: dateKey,
-      entry,
-      scores,
+      done: score.done,
+      percent: score.percent,
       weightLabel:
         typeof entry.weight === "number" && entry.weight > 0
           ? `${entry.weight.toFixed(1)}kg`
-          : "体重未記録",
+          : "--",
+      weight: entry.weight,
     });
   }
 
@@ -762,26 +549,19 @@ function drawSparkline(recent) {
   svg.innerHTML = "";
 
   const weights = recent
-    .map((item) => item.entry.weight)
+    .map((item) => item.weight)
     .filter((weight) => typeof weight === "number" && weight > 0);
 
   if (weights.length === 0) {
     svg.innerHTML =
-      '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="#637167" font-size="14">体重記録がたまるとここに推移が出ます</text>';
+      '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="#6e6a63" font-size="14">体重を入れると推移が出ます</text>';
     return;
   }
 
-  const availableWeights = recent.map((item) => {
-    if (typeof item.entry.weight === "number" && item.entry.weight > 0) {
-      return item.entry.weight;
-    }
-    return null;
-  });
-
   let lastKnown = weights[0];
-  const normalizedWeights = availableWeights.map((weight) => {
-    if (weight !== null) {
-      lastKnown = weight;
+  const normalizedWeights = recent.map((item) => {
+    if (typeof item.weight === "number" && item.weight > 0) {
+      lastKnown = item.weight;
     }
     return lastKnown;
   });
@@ -789,30 +569,19 @@ function drawSparkline(recent) {
   const min = Math.min(...normalizedWeights);
   const max = Math.max(...normalizedWeights);
   const span = Math.max(max - min, 1);
-
   const points = normalizedWeights.map((weight, index) => {
     const x = 20 + (index * 280) / Math.max(normalizedWeights.length - 1, 1);
     const y = 92 - ((weight - min) / span) * 64;
     return [x, y];
   });
-
   const pathData = points
     .map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`)
     .join(" ");
 
-  const guide = document.createElementNS("http://www.w3.org/2000/svg", "line");
-  guide.setAttribute("x1", "16");
-  guide.setAttribute("x2", "304");
-  guide.setAttribute("y1", "92");
-  guide.setAttribute("y2", "92");
-  guide.setAttribute("stroke", "rgba(43, 123, 132, 0.16)");
-  guide.setAttribute("stroke-width", "2");
-  svg.appendChild(guide);
-
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
   path.setAttribute("d", pathData);
   path.setAttribute("fill", "none");
-  path.setAttribute("stroke", "#2b7b84");
+  path.setAttribute("stroke", "#4d8dff");
   path.setAttribute("stroke-width", "4");
   path.setAttribute("stroke-linecap", "round");
   path.setAttribute("stroke-linejoin", "round");
@@ -823,9 +592,16 @@ function drawSparkline(recent) {
     circle.setAttribute("cx", x.toFixed(2));
     circle.setAttribute("cy", y.toFixed(2));
     circle.setAttribute("r", "4");
-    circle.setAttribute("fill", "#d66c3d");
+    circle.setAttribute("fill", "#f8b731");
     svg.appendChild(circle);
   });
+}
+
+function getLocalDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function formatDateLabel(dateKey) {
